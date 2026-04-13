@@ -1,5 +1,5 @@
 ## Install
 
 ```bash
-bunx skills add your-github-user/your-repo --skill generate-commit-message
+bunx skills add nocdn/skills --skill generate-commit-message
 ```
