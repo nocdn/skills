@@ -46,7 +46,7 @@ Order rows by importance: the primary endpoint (the one users actually came here
 
 For every route in the routes table, in the SAME importance order as the table (not alphabetical, not implementation order), produce a section consisting of:
 
-1. A bare `METHOD /path` line (e.g. `POST /api/download`).
+1. A `METHOD /path` line (e.g. `POST /api/download`), followed on the next line by a row of `=` characters whose length matches the `METHOD /path` line exactly (Setext-style underline).
 2. The curl example (see "Curl examples" below).
 3. `REQUEST FIELDS:` colon-heading + table - **only if the route accepts request fields** (body, query params, path params, custom headers). If the route has no request fields at all, OMIT this entire block. Do not insert a placeholder table with rows like `none | never | -`.
 4. `EXAMPLE RESPONSE:` colon-heading + pretty-printed JSON response (see "Example Response" below).
@@ -54,21 +54,18 @@ For every route in the routes table, in the SAME importance order as the table (
 
 #### Per-route section separator
 
-Each per-route section ends with a horizontal divider: a line of exactly five `/` characters (`/////`) on its own line, as the section's closing marker. The divider appears in EVERY per-route section, including the last one.
-
-The exact spacing between two adjacent per-route sections is:
+Per-route sections do not use a closing divider. The exact spacing between two adjacent per-route sections is:
 
 ```
 [last content of section A]
 [blank]
-/////
-[blank]
 [blank]
 [blank]
 [METHOD /path of section B]
+[=== underline of section B]
 ```
 
-That is: one blank line, then the divider, then three blank lines, then the next section starts. This gives a clear visual break between routes without becoming excessive.
+That is: three blank lines between the last content of one section and the `METHOD /path` line of the next. This gives a clear visual break between routes without becoming excessive.
 
 You MAY include short informational paragraphs of plain prose within a per-route section where genuinely useful: explaining non-obvious behavior, retry/fallback logic, platform-specific edge cases, what a particular field actually does, when to prefer one mode over another, etc.
 
@@ -180,6 +177,7 @@ ROUTES:
 
 
 POST /api/download
+==================
 
 curl -X POST http://localhost:3447/api/download \
   -H "Content-Type: application/json" \
@@ -216,11 +214,10 @@ ERROR RESPONSE:
   }
 }
 
-/////
-
 
 
 GET /api
+========
 
 curl http://localhost:3447/api
 
@@ -235,11 +232,10 @@ EXAMPLE RESPONSE:
   "status": "ok"
 }
 
-/////
-
 
 
 GET /api/health
+===============
 
 curl http://localhost:3447/api/health
 
@@ -248,6 +244,4 @@ EXAMPLE RESPONSE:
 {
   "status": "ok"
 }
-
-/////
 ```
