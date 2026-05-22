@@ -42,9 +42,22 @@ Columns: `Method`, `Path`, `Description`. Description is a few words at most.
 
 Order rows by importance: the primary endpoint (the one users actually came here to use) first, then the next most useful, and so on. Utility endpoints like `/api/health` go last.
 
+The routes table itself MUST still list every route the service exposes, including `/`, `/api`, and `/api/health`, so the table remains an honest map of the API surface.
+
+### Routes that MUST NOT have their own per-route section
+
+Even though these routes appear in the routes table, do NOT create a per-route section for any of them:
+
+- `GET /` (the usage reference itself)
+- `GET /api` (service metadata / defaults)
+- `GET /api/health` (service status)
+- any other `*/health` or status-only endpoint
+
+These routes are self-evident from the routes table and would only pad the page with noise. The per-route sections exist for routes a developer actually needs to learn how to call.
+
 ### 3. Per-route sections
 
-For every route in the routes table, in the SAME importance order as the table (not alphabetical, not implementation order), produce a section consisting of:
+For every route in the routes table EXCEPT the routes listed in "Routes that MUST NOT have their own per-route section" above, in the SAME importance order as the table (not alphabetical, not implementation order), produce a section consisting of:
 
 1. A `METHOD /path` line (e.g. `POST /api/download`), followed on the next line by a row of `=` characters whose length matches the `METHOD /path` line exactly (Setext-style underline).
 2. The curl example (see "Curl examples" below).
@@ -73,6 +86,39 @@ You MAY include short informational paragraphs of plain prose within a per-route
 - Place them where they fit best: directly after the curl, after a specific table, or before the example response.
 - Use sparingly: only when the information is actually useful to a developer using the API and is not already obvious from the curl, fields table, or response.
 
+#### Line style for informational paragraphs
+
+Informational paragraphs are NOT flowing prose. Every distinct statement (what would be a separate sentence in normal prose) goes on its own line, and the page must not contain long wrapped sentences in these blocks.
+
+- One statement per line. Break at every place you would otherwise put a `.` followed by a space.
+- No full stops at the end of any of these lines.
+- Every line starts with a lowercase letter, including the first line of the block. Do NOT capitalize the first word just because it begins a sentence. The only exceptions are real proper nouns, acronyms, code identifiers, and quoted literals (e.g. `YouTube`, `URL`, `PROXY_URL`, `FORCE_PROXY_SERVICES`, `"both"`, `audioQuality`) - those keep their natural casing.
+- Do not artificially split mid-clause - the unit is the statement (roughly one sentence), not the wrapped terminal line.
+
+Example - wrong (one long line, full stops, capitalized starts):
+
+```
+quality only applies when mode is "both" and accepts best, 2160p, 1440p, 1080p, 720p, 480p, or 360p. audioQuality only applies when mode is "audio" and accepts best, high, medium, low, or lowest, or a raw bitrate like "128K". When playlist is true, the URL must be a playlist and the response is a .zip file. proxy uses PROXY_URL when configured; FORCE_PROXY_SERVICES can force proxy use by service.
+```
+
+Example - right (one statement per line, no trailing `.`, lowercase starts where possible):
+
+```
+quality only applies when mode is "both" and accepts best, 2160p, 1440p, 1080p, 720p, 480p, or 360p
+audioQuality only applies when mode is "audio" and accepts best, high, medium, low, or lowest, or a raw bitrate like "128K"
+when playlist is true, the URL must be a playlist and the response is a .zip file
+proxy uses PROXY_URL when configured; FORCE_PROXY_SERVICES can force proxy use by service
+```
+
+Another right example:
+
+```
+/api/message only accepts application/json
+send audio and video uploads to /api/transcribe
+provider values are openai, gemini, fireworks, openrouter, or cerebras
+effort values are none, minimal, low, medium, high, or xhigh
+```
+
 ## Curl examples
 
 The `curl` line MUST start at column 0 - no leading indentation on the line that begins with `curl`, and no leading indentation on any of its continuation lines either. Do not wrap the entire curl block in outer indentation.
@@ -86,21 +132,22 @@ The hostname/port must be `http://localhost:$PORT` matching the service's actual
 
 ## Markdown table style
 
-Standard markdown table structure only: header row, header separator row, data rows. **Do NOT add a top border row or a bottom border row** - just the standard three parts.
+Markdown-like tables only - NOT standard markdown tables. The outer `|` characters (the leftmost wall and the rightmost wall) MUST be omitted on every row, including the header separator row. Only the interior `|` characters between columns remain. The first character of every row is the first character of the first cell (no leading `|`, no leading space), and the last character of every row is the last character of the last cell (no trailing space, no trailing `|`).
 
+- Header row, header separator row, data rows. **Do NOT add a top border row or a bottom border row.**
 - All cells in a column must be padded with trailing spaces so every cell in that column has equal width.
 - The header separator row's dash count for each column must match the padded width of that column exactly.
-- All `|` characters must align vertically across every row.
+- All interior `|` characters must align vertically across every row.
 - Cramped tables where every cell is sized to its own content are not acceptable. The page is read as plain text in a terminal, not just rendered, so alignment matters.
 
 Example of the expected style:
 
 ```
-| Method | Path            | Description                         |
-| ------ | --------------- | ----------------------------------- |
-| GET    | /api/health     | service status and configuration    |
-| POST   | /api/check      | run a fact-check (direct or queued) |
-| GET    | /api/check/:id  | poll a queued job                   |
+Method | Path           | Description
+------ | -------------- | -----------------------------------
+GET    | /api/health    | service status and configuration
+POST   | /api/check     | run a fact-check (direct or queued)
+GET    | /api/check/:id | poll a queued job
 ```
 
 ### Pipes inside table cells
@@ -134,7 +181,28 @@ Under the `EXAMPLE RESPONSE:` colon-heading, write a pretty-printed JSON example
 
 When the success response is NOT JSON (binary file, audio/video stream, plain text, octet-stream, etc.), do NOT invent fake JSON metadata describing the response. Instead, write a single concise plain-text sentence under `EXAMPLE RESPONSE:` describing what the success response actually is. Example: `Streams the downloaded media file with Content-Type matching the source format and Content-Disposition: attachment.`
 
-In that case, optionally follow `EXAMPLE RESPONSE:` (after a blank line) with an `ERROR RESPONSE:` colon-heading and a pretty-printed example error JSON to document the error shape, since errors will typically still be JSON even when success is binary.
+In that case, optionally follow `EXAMPLE RESPONSE:` (after a blank line) with an `ERROR RESPONSE:` colon-heading and an example error to document the error shape, since errors will typically still be JSON even when success is binary.
+
+## Error Response shape
+
+Under the `ERROR RESPONSE:` colon-heading, do NOT wrap the example in the outer JSON object braces `{` and `}`. Show only the inner key/value lines exactly as they would appear inside the JSON object, with no surrounding braces and no surrounding indentation.
+
+- Wrong:
+  ```
+  ERROR RESPONSE:
+
+  {
+    "error": "Missing media file. Upload an audio or video file in the file field."
+  }
+  ```
+- Right:
+  ```
+  ERROR RESPONSE:
+
+  "error": "Missing media file. Upload an audio or video file in the file field."
+  ```
+
+If the error shape has multiple keys, list each `"key": value` line on its own line at column 0, still with no surrounding braces.
 
 ## Colon-headings
 
@@ -156,7 +224,7 @@ When you add, change, or remove API routes, update `GET /` in the same change:
 
 ## Worked example
 
-For a yt-dlp wrapper exposing `POST /api/download`, `GET /api`, and `GET /api/health`:
+For a yt-dlp wrapper exposing `POST /api/download`, `GET /api`, and `GET /api/health`. Note: `GET /api`, `GET /api/health`, and `GET /` appear in the routes table but DO NOT get per-route sections.
 
 ```
 yt-dlp-api
@@ -168,11 +236,12 @@ wraps yt-dlp and streams the resulting media file over http
 
 ROUTES:
 
-| Method | Path          | Description               |
-| ------ | ------------- | ------------------------- |
-| POST   | /api/download | download and stream media |
-| GET    | /api          | service info and defaults |
-| GET    | /api/health   | service status            |
+Method | Path          | Description
+------ | ------------- | -------------------------
+POST   | /api/download | download and stream media
+GET    | /api          | service info and defaults
+GET    | /api/health   | service status
+GET    | /             | usage reference
 
 
 
@@ -189,59 +258,25 @@ curl -X POST http://localhost:3447/api/download \
   }' \
   --output download.bin
 
-YouTube URLs always require a working proxy; if the proxy is unreachable the
-request fails with a 502.
+YouTube URLs always require a working proxy
+if the proxy is unreachable the request fails with a 502
 
 REQUEST FIELDS:
 
-| Field    | Type                         | Default |
-| -------- | ---------------------------- | ------- |
-| url      | string                       | -       |
-| mode     | "audio" or "video" or "both" | "both"  |
-| quality  | string                       | "1080p" |
-| proxyUrl | string or null               | null    |
+Field    | Type                         | Default
+-------- | ---------------------------- | -------
+url      | string                       | -
+mode     | "audio" or "video" or "both" | "both"
+quality  | string                       | "1080p"
+proxyUrl | string or null               | null
 
 EXAMPLE RESPONSE:
 
-Streams the downloaded media file with Content-Type matching the source
-format and Content-Disposition: attachment.
+Streams the downloaded media file with Content-Type matching the source format and Content-Disposition: attachment.
 
 ERROR RESPONSE:
 
-{
-  "error": {
-    "message": "Playlist downloads are not supported."
-  }
-}
-
-
-
-GET /api
-========
-
-curl http://localhost:3447/api
-
-EXAMPLE RESPONSE:
-
-{
-  "defaultMode": "both",
-  "defaultQuality": "1080p",
-  "name": "yt-dlp-api",
-  "port": 3447,
-  "proxyConfigured": false,
-  "status": "ok"
-}
-
-
-
-GET /api/health
-===============
-
-curl http://localhost:3447/api/health
-
-EXAMPLE RESPONSE:
-
-{
-  "status": "ok"
+"error": {
+  "message": "Playlist downloads are not supported."
 }
 ```
