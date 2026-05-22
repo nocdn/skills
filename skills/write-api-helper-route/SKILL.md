@@ -166,7 +166,13 @@ The `|` character is reserved exclusively for the table's column separators.
 Columns: `Field`, `Type`, `Default`.
 
 - **Field** - the field name as it appears in the request (JSON key, query param, header).
-- **Type** - TypeScript-style notation: `string`, `string[]`, `boolean`, `number`, etc. Use `or` for unions (see above).
+- **Type** - the JSON/TypeScript primitive type ONLY: `string`, `string[]`, `boolean`, `number`, `File`, etc. **Never enumerate allowed values in the Type column**, even when the field is a strict enum / zod literal union / oneOf. The Type column is for the type, not for the value set.
+  - Wrong: `"openai" or "gemini" or "fireworks" or "openrouter" or "cerebras"`
+  - Wrong: `"none" or "minimal" or "low" or "medium" or "high" or "xhigh"`
+  - Wrong: `"ar" or "de" or "el" or "en" or "es" or "fr" or "it" or "ja" or "ko" or "nl" or "pl" or "pt" or "vi" or "zh"`
+  - Right: `string` (in all three cases above)
+  - The allowed values belong in the informational paragraph for the route (e.g. `provider values are openai, gemini, fireworks, openrouter, or cerebras`), not in the table.
+  - The `or` form is still allowed for genuine **type** unions where the alternatives are different types, not different string literals - e.g. `string or null`, `number or string`, `string or string[]`.
 - **Default** - the literal value in JSON form:
   - Quoted strings: `"both"`, `"1080p"`
   - Unquoted `null`, unquoted booleans (`true`, `false`)
@@ -260,15 +266,17 @@ curl -X POST http://localhost:3447/api/download \
 
 YouTube URLs always require a working proxy
 if the proxy is unreachable the request fails with a 502
+mode values are audio, video, or both
+quality values are best, 2160p, 1440p, 1080p, 720p, 480p, or 360p
 
 REQUEST FIELDS:
 
-Field    | Type                         | Default
--------- | ---------------------------- | -------
-url      | string                       | -
-mode     | "audio" or "video" or "both" | "both"
-quality  | string                       | "1080p"
-proxyUrl | string or null               | null
+Field    | Type           | Default
+-------- | -------------- | -------
+url      | string         | -
+mode     | string         | "both"
+quality  | string         | "1080p"
+proxyUrl | string or null | null
 
 EXAMPLE RESPONSE:
 
