@@ -183,15 +183,19 @@ Order fields with required fields first, then optional fields in importance orde
 
 ## Example Response
 
-Under the `EXAMPLE RESPONSE:` colon-heading, write a pretty-printed JSON example (2-space indentation) of what the route actually returns on success.
+Under the `EXAMPLE RESPONSE:` colon-heading, write a pretty-printed JSON example (2-space indentation) of what the route actually returns on success, following the "JSON response shape" rules below.
 
 When the success response is NOT JSON (binary file, audio/video stream, plain text, octet-stream, etc.), do NOT invent fake JSON metadata describing the response. Instead, write a single concise plain-text sentence under `EXAMPLE RESPONSE:` describing what the success response actually is. Example: `Streams the downloaded media file with Content-Type matching the source format and Content-Disposition: attachment.`
 
 In that case, optionally follow `EXAMPLE RESPONSE:` (after a blank line) with an `ERROR RESPONSE:` colon-heading and an example error to document the error shape, since errors will typically still be JSON even when success is binary.
 
-## Error Response shape
+## JSON response shape (applies to EXAMPLE RESPONSE and ERROR RESPONSE)
 
-Under the `ERROR RESPONSE:` colon-heading, do NOT wrap the example in the outer JSON object braces `{` and `}`. Show only the inner key/value lines exactly as they would appear inside the JSON object, with no surrounding braces and no surrounding indentation.
+This rule applies to **every** JSON example on the page, both under `EXAMPLE RESPONSE:` and under `ERROR RESPONSE:`. There is no exception for "complex" or "nested" or "array-shaped" responses - always strip the outermost `{` and `}`.
+
+Do NOT wrap the example in the outermost JSON object braces `{` and `}`. Show only the inner key/value lines exactly as they would appear inside the outermost JSON object, with no surrounding braces. Outdent the inner content by one level so the top-level keys sit at column 0; nested objects, arrays, and their inner braces keep their normal 2-space indentation relative to that.
+
+Single-key example:
 
 - Wrong:
   ```
@@ -208,7 +212,61 @@ Under the `ERROR RESPONSE:` colon-heading, do NOT wrap the example in the outer 
   "error": "Missing media file. Upload an audio or video file in the file field."
   ```
 
-If the error shape has multiple keys, list each `"key": value` line on its own line at column 0, still with no surrounding braces.
+Multi-key example:
+
+- Wrong:
+  ```
+  ERROR RESPONSE:
+
+  {
+    "error": "yt-dlp failed",
+    "details": "ERROR: unable to download media"
+  }
+  ```
+- Right:
+  ```
+  ERROR RESPONSE:
+
+  "error": "yt-dlp failed",
+  "details": "ERROR: unable to download media"
+  ```
+
+Nested / array example (EXAMPLE RESPONSE with arrays and nested objects):
+
+- Wrong:
+  ```
+  EXAMPLE RESPONSE:
+
+  {
+    "history": [
+      {
+        "id": 42,
+        "url": "https://example.com",
+        "status": "success"
+      }
+    ],
+    "limit": 25,
+    "offset": 0
+  }
+  ```
+- Right:
+  ```
+  EXAMPLE RESPONSE:
+
+  "history": [
+    {
+      "id": 42,
+      "url": "https://example.com",
+      "status": "success"
+    }
+  ],
+  "limit": 25,
+  "offset": 0
+  ```
+
+Note how the top-level keys (`"history"`, `"limit"`, `"offset"`) sit at column 0 with no leading indentation, while the array elements and nested object continue to use 2-space indentation relative to their parent. Commas between top-level keys are preserved exactly as they would be inside the original JSON object.
+
+If the top-level response is itself an array (not an object), keep the outer `[` and `]` - this rule only strips the outermost object braces. Same for top-level strings/numbers/booleans/null.
 
 ## Colon-headings
 
