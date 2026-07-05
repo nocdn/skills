@@ -26,6 +26,7 @@ Use this skill for end-to-end native iOS work: research current APIs, build the 
 
 2. Research current API and tooling.
    - Search Apple docs and relevant library docs before implementation.
+   - Treat the command templates below as the currently researched baseline, not as permanent truth. Before executing, verify relevant details with current Apple docs, `xcodebuild -help`, `xcrun simctl help`, `xcrun devicectl --help`, and current `serve-sim` docs/help.
    - Search `serve-sim` docs and run its help if available:
      ```sh
      npx serve-sim --help
@@ -41,36 +42,20 @@ Use this skill for end-to-end native iOS work: research current APIs, build the 
 
 4. Build and test from the command line.
    - Run formatter, lint, typecheck, or equivalent project checks when present.
-   - Run unit tests and UI tests. For Xcode projects, use an existing project command or:
-     ```sh
-     xcodebuild test -scheme <scheme> -destination 'platform=iOS Simulator,name=<device>,OS=latest'
-     ```
+   - Run unit tests and UI tests. For Xcode projects, use an existing project command or the command templates below.
    - Capture build/test logs to a readable file such as `./tmp/ios-build.log` or `./.codex/ios-build.log`.
 
 5. Verify interactively in Simulator.
    - Boot a current iOS 26/27 simulator when available; otherwise use the newest installed iOS Simulator and report the gap.
-   - Install and launch with `xcrun simctl install booted <App.app>` and `xcrun simctl launch booted <bundle-id>` or project-native tooling.
-   - Start `serve-sim` for browser control:
-     ```sh
-     npx serve-sim
-     # preview defaults to http://localhost:3200
-     ```
+   - Build, install, and launch with the simulator command template below or project-native tooling.
+   - Start `serve-sim` for browser control; preview defaults to `http://localhost:3200`.
    - Use Browser Use, Computer Use, or the in-app browser if available to open `http://localhost:3200`, inspect the running app visually, click/tap through every feature, and capture screenshots when useful.
    - Use `serve-sim tap <x> <y>`, `type`, `button`, `rotate`, `memory-warning`, `permissions`, `ui`, and `camera` when they fit the feature. Prefer `tap` for simple taps. Use normalized `0..1` coordinates.
    - Test with the dummy data spread, rotation, Dynamic Type, color scheme, accessibility, and failure states where relevant. Fix issues and repeat build -> simulator -> `serve-sim` verification until passing.
 
 6. Install and run on the connected iPhone after simulator verification.
    - Always attempt this after making changes and completing simulator testing.
-   - Discover devices with `xcrun devicectl list devices` and/or `xcodebuild -showdestinations -scheme <scheme>`.
-   - Build for a real device with the existing signing setup. Use project tooling or:
-     ```sh
-     xcodebuild -scheme <scheme> -destination 'platform=iOS,id=<device-id>' build
-     ```
-   - Install and launch with current `devicectl` commands when supported by the installed Xcode/device OS:
-     ```sh
-     xcrun devicectl device install app --device <device-id> <App.app>
-     xcrun devicectl device process launch --device <device-id> <bundle-id>
-     ```
+   - Build, install, and launch with the physical-device command template below or project-native tooling.
    - If no physical iPhone is connected, trusted, paired, provisioned, or compatible, state the exact blocker and command-output summary. Do not imply hardware validation happened.
    - After install/launch, ensure runtime logs can be retrieved from the app or system logs for later debugging.
 
@@ -83,6 +68,58 @@ Use this skill for end-to-end native iOS work: research current APIs, build the 
    - Summarize what was implemented, how it works, and why key choices were made.
    - Include exact simulator/device/OS/Xcode used, whether iOS 26/27 SDKs were available, `serve-sim` URL/commands used, and any physical-device blocker.
    - Mention remaining risks or untested paths. Do not stop immediately after coding; stop after testing/reporting.
+
+## Command Templates
+
+From current research, these are the normal command shapes for building, testing, installing, and launching native Xcode iOS apps. Verify them against current docs/tool help before relying on them, especially across Xcode 26/27, iOS 26/27, signing, and `devicectl` changes.
+
+Use `-workspace <App.xcworkspace>` when a workspace exists; otherwise use `-project <App.xcodeproj>`.
+
+Simulator build, test, install, launch, and browser verification:
+
+```sh
+PROJECT_ARG="-workspace <App.xcworkspace>" # or: -project <App.xcodeproj>
+SCHEME="<scheme>"
+SIM_ID="<simulator-udid>"
+BUNDLE_ID="<bundle-id>"
+DERIVED_DATA="$PWD/.codex/DerivedData-simulator"
+
+xcodebuild $PROJECT_ARG -scheme "$SCHEME" -configuration Debug \
+  -destination "platform=iOS Simulator,id=$SIM_ID" \
+  -derivedDataPath "$DERIVED_DATA" build
+
+xcodebuild $PROJECT_ARG -scheme "$SCHEME" \
+  -destination "platform=iOS Simulator,id=$SIM_ID" \
+  -derivedDataPath "$DERIVED_DATA" test
+
+APP_PATH="$(find "$DERIVED_DATA/Build/Products" -path '*Debug-iphonesimulator*' -name '*.app' -print -quit)"
+xcrun simctl boot "$SIM_ID" || true
+xcrun simctl bootstatus "$SIM_ID" -b
+xcrun simctl install "$SIM_ID" "$APP_PATH"
+xcrun simctl launch "$SIM_ID" "$BUNDLE_ID"
+npx serve-sim "$SIM_ID"
+```
+
+Physical iPhone build, install, and launch:
+
+```sh
+PROJECT_ARG="-workspace <App.xcworkspace>" # or: -project <App.xcodeproj>
+SCHEME="<scheme>"
+DEVICE_ID="<device-id>"
+BUNDLE_ID="<bundle-id>"
+DERIVED_DATA="$PWD/.codex/DerivedData-device"
+
+xcrun devicectl list devices
+xcodebuild $PROJECT_ARG -scheme "$SCHEME" -configuration Debug \
+  -destination "platform=iOS,id=$DEVICE_ID" \
+  -derivedDataPath "$DERIVED_DATA" build
+
+APP_PATH="$(find "$DERIVED_DATA/Build/Products" -path '*Debug-iphoneos*' -name '*.app' -print -quit)"
+xcrun devicectl device install app --device "$DEVICE_ID" "$APP_PATH"
+xcrun devicectl device process launch --terminate-existing --console --device "$DEVICE_ID" "$BUNDLE_ID"
+```
+
+If `devicectl` flags differ in the installed Xcode, use `xcrun devicectl device install app --help` and `xcrun devicectl device process launch --help`, then adapt the command and report the difference.
 
 ## Serve-sim Notes
 
