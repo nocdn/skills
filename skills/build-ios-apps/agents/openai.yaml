@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build iOS Apps"
+  short_description: "Build native iOS apps with simulator QA"
+  default_prompt: "Use $build-ios-apps to build and test this iOS app."
